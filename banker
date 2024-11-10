@@ -1,0 +1,118 @@
+#include <iostream>
+using namespace std;
+
+struct Process {
+    int max[10];
+    int allocate[10];
+    int need[10];
+};
+
+Process p[10];
+int n, m;
+
+void input(int available[]);
+void display();
+bool isSafeState(int available[], int safeSequence[]);
+bool safetyAlgorithm(int available[], int safeSequence[]);
+
+int main() {
+    cout << "Enter the number of processes: ";
+    cin >> n;
+    cout << "Enter the number of resources: ";
+    cin >> m;
+
+    int available[10];       // Available resources
+    int safeSequence[10];     // Safe sequence of processes
+
+    cout << "\n***** Enter details of each process *****\n";
+    input(available);
+    display();
+
+    if (isSafeState(available, safeSequence)) {
+        cout << "\nSYSTEM IS IN SAFE STATE.\nSafe sequence is: ";
+        for (int i = 0; i < n; i++)
+            cout << "P" << safeSequence[i] << " ";
+        cout << endl;
+    } else {
+        cout << "\nSYSTEM IS IN UNSAFE STATE!!!" << endl;
+    }
+
+    return 0;
+}
+
+void input(int available[]) {
+    for (int i = 0; i < n; i++) {
+        cout << "\nEnter details of process P" << i << ":\n";
+        cout << "\tEnter allocated resources: ";
+        for (int j = 0; j < m; j++) {
+            cin >> p[i].allocate[j];
+        }
+        cout << "\tEnter maximum resources: ";
+        for (int j = 0; j < m; j++) {
+            cin >> p[i].max[j];
+            p[i].need[j] = p[i].max[j] - p[i].allocate[j];  // Calculate need
+        }
+    }
+    cout << "\nEnter available resources: ";
+    for (int j = 0; j < m; j++) {
+        cin >> available[j];
+    }
+}
+
+void display() {
+    cout << "\n\tPID\tALLOCATE\tMAX\t\tNEED\n";
+    for (int i = 0; i < n; i++) {
+        cout << "\tP" << i << "\t";
+        for (int j = 0; j < m; j++)
+            cout << p[i].allocate[j] << " ";
+        cout << "\t\t";
+        for (int j = 0; j < m; j++)
+            cout << p[i].max[j] << " ";
+        cout << "\t\t";
+        for (int j = 0; j < m; j++)
+            cout << p[i].need[j] << " ";
+        cout << endl;
+    }
+}
+
+bool isSafeState(int available[], int safeSequence[]) {
+    return safetyAlgorithm(available, safeSequence);
+}
+
+bool safetyAlgorithm(int available[], int safeSequence[]) {
+    int work[10];       // Work array to keep track of available resources
+    bool finish[10] = { false };  // Track if each process can finish
+
+    // Initialize work with available resources
+    for (int j = 0; j < m; j++) {
+        work[j] = available[j];
+    }
+
+    int count = 0;
+    while (count < n) {
+        bool found = false;
+        for (int i = 0; i < n; i++) {
+            if (!finish[i]) {  // If process i is not finished
+                bool canComplete = true;
+                for (int j = 0; j < m; j++) {
+                    if (p[i].need[j] > work[j]) {  // Check if it can complete
+                        canComplete = false;
+                        break;
+                    }
+                }
+                if (canComplete) {  // If process i can complete
+                    for (int j = 0; j < m; j++) {
+                        work[j] += p[i].allocate[j];  // Release resources
+                    }
+                    safeSequence[count++] = i;
+                    finish[i] = true;
+                    found = true;
+                }
+            }
+        }
+        if (!found) {  // No process could safely finish in this round
+            return false;  // Unsafe state
+        }
+    }
+    return true;  // Safe state
+}
