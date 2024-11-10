@@ -1,0 +1,124 @@
+#include <iostream>
+#include <climits>
+using namespace std;
+
+struct Process {
+    int pid;
+    int arrival_time;
+    int burst_time;
+    int remaining_time;
+    int waiting_time;
+    int turnaround_time;
+    int completion_time;
+};
+
+void calculateSJFPreemptive(Process processes[], int n) {
+    int completed = 0, current_time = 0, min_time = INT_MAX;
+    int shortest = -1, finish_time;
+    bool check = false;
+
+    while (completed != n) {
+        for (int i = 0; i < n; i++) {
+            if (processes[i].arrival_time <= current_time &&
+                processes[i].remaining_time < min_time && 
+                processes[i].remaining_time > 0) {
+                min_time = processes[i].remaining_time;
+                shortest = i;
+                check = true;
+            }
+        }
+
+        if (!check) {
+            current_time++;
+            continue;
+        }
+
+        processes[shortest].remaining_time--;
+        min_time = processes[shortest].remaining_time;
+        if (min_time == 0) min_time = INT_MAX;
+
+        if (processes[shortest].remaining_time == 0) {
+            completed++;
+            finish_time = current_time + 1;
+            processes[shortest].completion_time = finish_time;
+            processes[shortest].turnaround_time = finish_time - processes[shortest].arrival_time;
+            processes[shortest].waiting_time = processes[shortest].turnaround_time - processes[shortest].burst_time;
+            if (processes[shortest].waiting_time < 0) processes[shortest].waiting_time = 0;
+            check = false;
+        }
+        current_time++;
+    }
+}
+
+void calculateRoundRobin(Process processes[], int n, int quantum) {
+    int completed = 0, current_time = 0;
+    bool done;
+    
+    while (completed != n) {
+        done = true;
+        for (int i = 0; i < n; i++) {
+            if (processes[i].arrival_time <= current_time && processes[i].remaining_time > 0) {
+                done = false;
+                if (processes[i].remaining_time > quantum) {
+                    current_time += quantum;
+                    processes[i].remaining_time -= quantum;
+                } else {
+                    current_time += processes[i].remaining_time;
+                    processes[i].waiting_time = current_time - processes[i].burst_time - processes[i].arrival_time;
+                    processes[i].completion_time = current_time;
+                    processes[i].turnaround_time = processes[i].completion_time - processes[i].arrival_time;
+                    processes[i].remaining_time = 0;
+                    completed++;
+                }
+            }
+        }
+        if (done) current_time++;
+    }
+}
+
+void printProcessDetails(Process processes[], int n) {
+    cout << "\nPID\tArrival\tBurst\tWaiting\tTurnaround\tCompletion\n";
+    for (int i = 0; i < n; i++) {
+        cout << processes[i].pid << "\t" << processes[i].arrival_time << "\t" << processes[i].burst_time << "\t"
+             << processes[i].waiting_time << "\t" << processes[i].turnaround_time << "\t\t" << processes[i].completion_time << endl;
+    }
+}
+
+int main() {
+    int n, quantum, choice;
+    cout << "Enter the number of processes: ";
+    cin >> n;
+
+    Process processes[n];
+    for (int i = 0; i < n; i++) {
+        cout << "\nEnter arrival time and burst time for process " << i + 1 << ": ";
+        cin >> processes[i].arrival_time >> processes[i].burst_time;
+        processes[i].pid = i + 1;
+        processes[i].remaining_time = processes[i].burst_time;
+        processes[i].waiting_time = 0;
+        processes[i].turnaround_time = 0;
+    }
+
+    cout << "Choose Scheduling Algorithm:\n1. Shortest Job First (Preemptive)\n2. Round Robin\nEnter choice: ";
+    cin >> choice;
+
+    switch (choice) {
+        case 1:
+            calculateSJFPreemptive(processes, n);
+            cout << "\nShortest Job First (Preemptive) Scheduling:\n";
+            printProcessDetails(processes, n);
+            break;
+        case 2:
+            cout << "Enter time quantum: ";
+            cin >> quantum;
+            calculateRoundRobin(processes, n, quantum);
+            cout << "\nRound Robin Scheduling:\n";
+            printProcessDetails(processes, n);
+            break;
+        default:
+            cout << "Invalid choice!\n";
+            break;
+    }
+
+    return 0;
+}
