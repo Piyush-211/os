@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <semaphore.h>
+#include <pthread.h>
+#include <unistd.h>
+
+sem_t e, f, s;
+
+int data[5], in = 0, out = 0;
+int produced_count = 0; // To track the number of produced items
+
+void* producer(void* arg) {
+    while (1) {
+        sem_wait(&e);
+        sem_wait(&s);
+        data[in] = rand() % 100; // Produce a random number
+        printf("\n Producer generated: %d", data[in]);
+        in = (in + 1) % 5;
+        produced_count++; // Increase the count of produced items
+        sem_post(&s);
+        sem_post(&f);
+        sleep(1); // Optional: to simulate production time
+    }
+}
+
+void* consumer(void* arg) {
+    while (1) {
+        sem_wait(&f);
+        sem_wait(&s);
+        int value = data[out];
+        printf("\n Consumer Reads: %d", value);
+        out = (out + 1) % 5;
+        sem_post(&s);
+        sem_post(&e);
+        
+        // Check if enough items have been produced to stop
+        if (produced_count >= 20) {
+            break; // Exit the loop
+        }
+    }
+}
+
+int main() {
+    pthread_t p[8], c;
+    sem_init(&f, 0, 0);
+    sem_init(&e, 0, 5);
+    sem_init(&s, 0, 1);
+
+    pthread_create(&c, NULL, consumer, NULL);
+
+    for (int i = 0; i < 8; ++i) {
+        pthread_create(&p[i], NULL, producer, NULL);
+    }
+
+    pthread_join(c, NULL); // Wait for the consumer to finish
+
+    // No semaphore destruction
+    return 0;
+}   
